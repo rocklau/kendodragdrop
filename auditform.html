@@ -1,0 +1,531 @@
+<!DOCTYPE html>
+
+<html>
+<head>
+    <title>ERM Audit Form</title>
+    <link rel="stylesheet" href="Content/bootstrap/css/bootstrap.min.css">
+    <link rel="stylesheet" href="Content/kendo/kendo.common.min.css">
+    <link rel="stylesheet" href="Content/kendo/kendo.default.min.css">
+    <style>
+        .highlight {
+            border-color: red;
+        }     
+    </style>
+    <script src="Scripts/jquery-1.8.3.min.js"></script>
+    <script src="Scripts/kendo/kendo.web.min.js"></script>
+    <script src="Scripts/kendo/kendo.aspnetmvc.min.js"></script>
+    <script src="Content/bootstrap/js/bootstrap.min.js"></script>
+
+</head>
+<body>
+    <div class="container-fluid">
+        <div class="row-fluid">
+
+            <div class="span2  well" id="form">
+                <div class="well-small">
+                    <a data-bind="click: addSection" class="btn">New Section</a>
+                </div>
+                <div data-template="form-template" data-bind="source:sections"></div>
+            </div>
+            <div class="span8 preview">
+
+
+                <div class="well well-small">
+                    <span id="sectionname">
+                        <input type="text" data-bind="value : name" />
+                    </span>
+                    <a data-type="checkbox" class="draggable badge">Check Box</a>
+                    <a data-type="answerbox" class="draggable badge">Answer Box</a>
+                    <a data-type="listbox" class="draggable badge">List Box</a>
+                    <a data-type="ynbutton" class="draggable badge">Yes/No Button</a>
+                    <a data-type="commentbox" class="draggable badge">Comment Box</a>
+                </div>
+                <span id="info" class="label label-success"></span>
+                <div id="droptarget" class="well well-small" style="padding: 50px 18px 50px 18px;"></div>
+            </div>
+
+        </div>
+    </div>
+    <div id="properties">
+        <input type="text" data-bind="value: question" value="" />
+
+        <div id="moreAnswer" data-template="row-template" data-bind="source:answers">
+        </div>
+        <a id="up" class="btn">Up</a>
+        <a id="down" class="btn">Down</a>
+        <a id="new" data-bind="click: addAnswer" class="btn">New</a>
+        <a id="del" data-bind="click: removeAnswer" class="btn">Del</a>
+    </div>
+    <script id="form-template" type="text/x-kendo-template">
+       <div class="section alert alert-block">
+  <button type="button"  class="close" data-bind="click: removeSection" data-dismiss="alert">&times;</button>
+                 <a href="javascript:void(0);" class="section-title"  data-bind="click: switchSection"  > <h5  data-bind="text: name"></h5></a>
+                    <div class="well well-small"  data-template="section-template" data-bind="source:questions">                     
+                    </div>
+                </div>
+    </script>
+    <script id="section-template" type="text/x-kendo-template">
+       <a  class="label question" href="\##=uid#"  onclick="javascript:return switchQ('#=uid#');"  data-bind="text: question"></a>
+    </script>
+    <script id="row-template" type="text/x-kendo-template">
+    <input type="text" class="answer" data-bind="value: text" value="" />   
+    </script>
+    <script id="checkbox-template" type="text/x-kendo-template">
+   <label class="checkbox">
+                    <input type="checkbox"  data-bind="value: value" ><span data-bind="text: text"></span>
+     </label>
+    </script>
+    <script id="listbox-template" type="text/x-kendo-template">
+   <option data-bind=" value:value, text : text"></option>                   
+     
+    </script>
+    <script id="radio-template" type="text/x-kendo-template">
+   <label class="radio">
+                    <input type="radio"  data-bind="value: value" ><span data-bind="text: text"></span>
+     </label>
+    </script>
+
+
+
+    <div id="components" style="display: none;">
+        <div id="checkbox" class="component alert alert-block">
+            <button type="button" class="close" data-dismiss="alert">&times;</button>
+            <h4 data-bind="text: question">Question?</h4>
+            <div class="answers" data-template="checkbox-template" data-bind="source:answers">
+            </div>
+        </div>
+        <div id="answerbox" class="component alert alert-block">
+            <button type="button" class="close" data-dismiss="alert">&times;</button>
+            <h4 data-bind="text: question">Question?</h4>
+            <textarea rows="3" data-bind="value: answers[0].text"></textarea>
+        </div>
+        <div id="listbox" class="component alert alert-block">
+            <button type="button" class="close" data-dismiss="alert">&times;</button>
+            <h4 data-bind="text: question">Question?</h4>
+            <select class="answers" data-template="listbox-template" data-bind="source:answers">
+            </select>
+        </div>
+        <div id="commentbox" class="component alert alert-block">
+            <button type="button" class="close" data-dismiss="alert">&times;</button>
+            <h4 data-bind="text: question">Question?</h4>
+            <textarea rows="3" data-bind="value: answers[0].text"></textarea>
+        </div>
+        <div id="ynbutton" class="component alert alert-block">
+            <button type="button" class="close" data-dismiss="alert">&times;</button>
+            <h4>Question?</h4>
+            <div class="answers" data-template="radio-template" data-bind="source:answers">
+            </div>
+        </div>
+    </div>
+
+    <script>
+
+        function componentDrag(c) {
+            var drags = null;
+            if (c) {
+                drags = $(c);
+            } else {
+                drags = $(".component");
+            }
+            drags.kendoDraggable({
+                axis: "y",           
+                hint: function (element) {
+                    dragType = $(element).data("type");
+                    $(element).addClass(" ondrag");
+                    inContainer = false;
+                    return $(element).clone();
+                },
+                dragstart: draggableOnDragStart,
+                dragend: draggableOnDragEnd
+            });
+        }
+
+        function switchQ(uid) {
+            $("#" + uid).click();
+            return true;
+        }
+        function newAnswer(e) {
+            e.preventDefault();
+
+            e.data.get("answers").push({ value: 4, text: "" });
+            kendo.bind(currentmove, currentViewModel);
+            kendo.bind($("#properties"), currentViewModel);
+        }
+        function delAnswer(e) {
+            e.preventDefault();
+            e.data.get("answers").pop();
+            kendo.bind(currentmove, currentViewModel);
+            kendo.bind($("#properties"), currentViewModel);
+        }
+        var questions = new kendo.data.ObservableArray([{
+            question: "Question A?",
+            type: "checkbox",
+            answers: [{ value: 1, text: "Yes" }, { value: 2, text: "No" }, { value: 3, text: "Not Applicable" }],
+            addAnswer: function (e) { newAnswer(e); },
+            removeAnswer: function (e) { delAnswer(e); }
+        }, {
+            question: "Question B?",
+            type: "ynbutton",
+            answers: [{ value: 1, text: "Yes" }, { value: 2, text: "No" }, { value: 3, text: "Not Applicable" }],
+            addAnswer: function (e) { newAnswer(e); },
+            removeAnswer: function (e) { delAnswer(e); }
+        }, {
+            question: "Question C?",
+            type: "checkbox",
+            answers: [{ value: 1, text: "Yes" }, { value: 2, text: "No" }, { value: 3, text: "Not Applicable" }],
+            addAnswer: function (e) { newAnswer(e); },
+            removeAnswer: function (e) { delAnswer(e); }
+        }]);
+        var section = null;
+
+        var form = new kendo.observable(
+         {
+             sections: new kendo.data.ObservableArray([]),
+             addSection: function (e) {
+                 e.preventDefault();
+                 this.get("sections").push(new kendo.observable(
+            {
+                questions: new kendo.data.ObservableArray([]),
+                name: "Section " + (this.get("sections").length + 1)
+            }
+            ));
+
+             },
+             removeSection: function (e) {
+                 var index = this.get("sections").indexOf(e.data);
+                 this.get("sections").splice(index, 1);
+
+
+             },
+             switchSection: function (e) {
+                 e.preventDefault();
+
+                 var index = this.get("sections").indexOf(e.data);
+                 section = this.get("sections")[index];
+                 questions = section.questions;
+                 kendo.bind($("#sectionname"), section);
+                 $("#droptarget").html("");
+
+                 for (var i = 0; i < questions.length; i++) {
+
+                     var newc = $("#components #" + questions[i].type).clone();
+
+                     newc.data("uid", questions[i].uid);
+                     newc.data("type", questions[i].type);
+                     newc.data("index", i);
+                     newc.attr("id", questions[i].uid);
+                     newc.click(showProperty);
+                     newc.children(".close").click(removeQ);
+                     currentViewModel = questions[i];
+                     showMoreAnswer(questions[i].type);
+                     currentmove = newc;
+                     currentmove.addClass("highlight");
+
+                     kendo.bind(currentmove, currentViewModel);
+                     kendo.bind($("#properties"), currentViewModel);
+
+                     $("#droptarget").append(newc);
+                 }
+                 if (questions.length > 0) {
+
+                     $("#" + questions[0].uid).click();
+                     componentDrag();
+                 }
+             }
+         }
+         );
+        section = new kendo.observable(
+            {
+                questions: questions,
+                name: "Section 1"
+
+            }
+            )
+        form.sections.push(section);
+        kendo.bind($("#sectionname"), section);
+
+        var dragType = "";
+        var currentViewModel = kendo.observable({
+            question: "Question?",
+            type: "checkbox",
+            answers: [{ value: 1, text: "Yes" }, { value: 2, text: "No" }, { value: 3, text: "Not Applicable" }],
+            addAnswer: function (e) {
+                e.preventDefault();
+                this.get("answers").push({ value: 4, text: "" });
+            }
+        });
+        var currentmove = null;
+        var inContainer = false;
+        var startDrag = false;
+        function draggableOnDragStart(e) {
+            startDrag = true;
+            $(".component").not(".ondrag").bind("mouseenter", function () {
+                dropOnDiv = $(this).attr("id");
+
+            });
+            if ($(".component").first()) {
+                $(".component").first().bind("mouseleave",
+                    function () { dropOnDiv = null; }
+                    );
+            }
+            $("#info").text("(Drop here)");
+        }
+
+        function droptargetOnDragEnter(e) {
+            $("#info").text("Now you can drop it.");
+        }
+
+        function droptargetOnDragLeave(e) {
+            $("#info").text("(Drop here)");
+        }
+
+        function resetIndex() {
+            for (var i = 0; i < questions.length; i++) {
+                $("#" + questions[i].uid).data("index", i);
+            }
+
+
+        }
+        function droptargetOnDrop(e) {
+
+
+            var drag = $(e.draggable.currentTarget);
+            if (drag && drag.hasClass("component") && $(".component").length > 1) {
+                var drop = null;
+                if (dropOnDiv) {
+                    drop = $("#" + dropOnDiv);
+
+                } else {
+                    drop = $(".component").first();
+
+                }
+
+                var d = drop.data("index");
+                var g = drag.data("index");
+                var m = questions[drag.data("index")];
+                if (d == g)
+                    return;
+                if (dropOnDiv) {
+                    drop.after(drag);
+                } else {
+                    drop.before(drag);
+                }
+
+                questions.splice(g, 1);
+
+                if (d < g) {
+                    if (dropOnDiv) {
+                        questions.splice(1 + d, 0, m);
+                    }
+                    else {
+
+                        questions.unshift(m);
+                    }
+                } else {
+
+                    questions.splice(d, 0, m);
+
+                }
+
+                resetIndex();
+                return;
+            }
+            var newc = $("#components #" + dragType).clone();
+            newc.click(showProperty);
+            newc.children(".close").click(removeQ);
+
+            getViewModelByType(dragType);
+            showMoreAnswer(dragType);
+            newc.data("type", dragType);
+            newc.data("index", questions.length - 1);
+            newc.data("uid", currentViewModel.uid);
+            newc.attr("id", currentViewModel.uid);
+            currentmove = newc;
+
+            if (dropOnDiv) {
+                $("#" + dropOnDiv).after(newc);
+                resetIndex();
+            } else
+                $("#droptarget").append(newc);
+            componentDrag(newc);
+            newc.click();
+
+        }
+
+        function draggableOnDragEnd(e) {
+            startDrag = false;
+
+            $(".component").unbind("mouseenter");
+            $(".component").unbind("mouseleave");
+            $(e.currentTarget).removeClass("ondrag");
+            if (!e.dropped) {
+                dropOnDiv = null;
+            }
+        }
+        function showMoreAnswer(id) {
+            switch (id) {
+                case "listbox":
+                case "checkbox":
+                case "ynbutton":
+                    $("#new , #del").show();
+                    
+                    break;
+                case "answerbox":
+                case "commentbox":
+                    $("#new , #del").hide();
+                default:
+
+            }
+        }
+        function getViewModelByType(type) {
+            var viewm = new kendo.observable({
+                question: "Question?"
+            });
+            switch (type) {
+                case "listbox":
+                case "checkbox":
+                case "ynbutton":
+                    viewm = kendo.observable({
+                        question: "Question?",
+                        type: "",
+                        answers: [{ value: 1, text: "Yes" }, { value: 2, text: "No" }, { value: 3, text: "Not Applicable" }],
+                        addAnswer: function () {
+                            this.get("answers").push({ value: 0, text: "" });
+                        },
+                        removeAnswer: function () { this.get("answers").pop(); }
+                    });
+                    break;
+                case "answerbox":
+                case "commentbox":
+                    viewm = kendo.observable({
+                        question: "Question?",
+                        type: "",
+                        answers: [{ value: "", text: "" }],
+                        addAnswer: function () {
+                            this.get("answers").push({ value: 0, text: "" });
+                        }, removeAnswer: function () { this.get("answers").pop(); }
+
+                    });
+                default:
+
+            }
+            viewm.type = type;
+            currentViewModel = viewm;
+            if (dropOnDiv) {
+                questions.splice(1 + $("#" + dropOnDiv).data("index"), 0, currentViewModel);
+            } else {
+                questions.push(currentViewModel);
+            }
+            return viewm;
+        }
+        function getmode(uid) {
+
+            var m = null;
+            for (var i = 0; i < questions.length; i++) {
+                if (questions[i].uid == uid) {
+                    currentViewModel = questions[i];
+                    break;
+                }
+            }
+
+
+        }
+        function showProperty(e) {
+            e.preventDefault();
+
+            currentmove = $(e.currentTarget);
+
+            getmode(currentmove.data("uid"));
+            $("#droptarget .alert").removeClass("highlight");
+            currentmove.addClass("highlight");
+
+            showMoreAnswer($(currentmove).data("type"));
+            kendo.bind(currentmove, currentViewModel);
+
+            kendo.bind($("#properties"), currentViewModel);
+
+        }
+        function removeQ(e) {
+
+            questions.splice($(e.currentTarget).parent().data("index"), 1);
+            resetIndex();
+        }
+
+
+
+        form.bind("change", function (e) {
+
+
+        });
+        var dropOnDiv = null;
+        $(document).ready(function () {
+
+            $("#properties").kendoWindow().show()
+            $(".k-window").css("top", "0").css("right", "0").width(270).height(225);
+            $("#down").click(function () {
+                var newindex = 1 + currentmove.data("index");
+                if (newindex < questions.length) {
+
+                    var q = questions[currentmove.data("index")];
+                    questions[currentmove.data("index")] = questions[newindex];
+                    questions[newindex] = q;
+
+                    currentmove.data("index", newindex);
+                    var p = $(currentmove).prev();
+                    if (p) {
+                        p.data("index", newindex - 1);
+                    }
+                    $(currentmove).insertAfter($(currentmove).next());
+                    kendo.bind($("#form"), form);
+                }
+            });
+            $("#up").click(function () {
+                var newindex = parseInt(currentmove.data("index")) - 1;
+                if (newindex >= 0) {
+
+                    var q = questions[currentmove.data("index")];
+                    questions[currentmove.data("index")] = questions[newindex];
+                    questions[newindex] = q;
+
+                    currentmove.data("index", newindex);
+                    var p = $(currentmove).next();
+                    if (p) {
+                        p.data("index", newindex + 1);
+                    }
+                    $(currentmove).insertBefore($(currentmove).prev());
+                    kendo.bind($("#form"), form);
+                }
+
+            });
+
+            $(".draggable").kendoDraggable({          
+                hint: function (element) {
+                    dragType = $(element).data("type");
+                    inContainer = false;
+                    return $(element).clone();
+                },
+                dragstart: draggableOnDragStart,
+                dragend: draggableOnDragEnd
+            });
+
+            $("#droptarget").kendoDropTarget({
+                dragenter: droptargetOnDragEnter,
+                dragleave: droptargetOnDragLeave,
+                drop: droptargetOnDrop
+            });
+
+            $(".draggable").data("kendoDraggable");
+
+
+
+            kendo.bind($("#form"), form);
+            $("a.section-title").first().click();
+            $(".component .close").click(removeQ);
+
+        });
+    </script>
+
+
+
+</body>
+</html>
